@@ -51,4 +51,5 @@ You can customize the genetic algorithm parameters and the equation to be solved
 - This code uses the [DEAP](https://github.com/DEAP/deap) library for evolutionary algorithms in Python.
 
 Feel free to fork, modify, and use this code for your university exercises. If you find it helpful, consider giving it a star!
+Also Make sure to create a file named `.gitignore` in the root of your project with the specified content to ignore the `.venv` folder.
 ```
