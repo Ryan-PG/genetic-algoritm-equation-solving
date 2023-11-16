@@ -1,52 +1,80 @@
-# Solve the `a+2b+3c+4d-30=0` Equation using Genetic Algorithm in python
-
 import random
-from deap import base, creator, tools, algorithms
+import numpy as np
 
-# Define the optimization problem
-creator.create("FitnessMin", base.Fitness, weights=(1.0,))
-creator.create("Individual", list, fitness=creator.FitnessMin)
+# Genetic Algorithm settings
+population_size = 100
+mutation_rate = 0.01
+num_generations = 100
 
-# Define the bounds for variables a, b, c, d
-bounds = [(-10, 10), (-10, 10), (-10, 10), (-10, 10)]
+# Objective function
+def objective_function(a, b, c, d):
+    return abs(a + 2*b + 3*c + 4*d - 30)
 
-# Define the genetic algorithm toolbox
-toolbox = base.Toolbox()
-toolbox.register("attr_float", random.uniform, -10, 10)
-toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_float, n=4)
-toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+# Generate initial population
+def generate_initial_population():
+    population = []
+    for _ in range(population_size):
+        individual = [random.randint(1, 29) for _ in range(4)]
+        population.append(individual)
+    return population
 
-# Define the evaluation function
-def evaluate(individual):
-    a, b, c, d = individual
-    equation_result = a + 2 * b + 3 * c + 4 * d - 30
-    return abs(equation_result),
+# Crossover
+def crossover(parent1, parent2):
+    child = []
+    for i in range(len(parent1)):
+        if random.random() < 0.5:
+            child.append(parent1[i])
+        else:
+            child.append(parent2[i])
+    return child
 
-toolbox.register("evaluate", evaluate)
-toolbox.register("mate", tools.cxBlend, alpha=0.5)
-toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
-toolbox.register("select", tools.selTournament, tournsize=3)
+# Mutation
+def mutate(individual):
+    mutated_individual = []
+    for gene in individual:
+        if random.random() < mutation_rate:
+            mutated_individual.append(random.randint(1, 29))
+        else:
+            mutated_individual.append(gene)
+    return mutated_individual
 
-if __name__ == "__main__":
-    # Create the initial population
-    population = toolbox.population(n=50)
+# Genetic Algorithm
+def genetic_algorithm():
+    population = generate_initial_population()
 
-    # Evaluate the entire population
-    fitnesses = list(map(toolbox.evaluate, population))
-    for ind, fit in zip(population, fitnesses):
-        ind.fitness.values = fit
+    for generation in range(num_generations):
+        # Calculate fitness scores for each individual in the population
+        fitness_scores = []
+        for individual in population:
+            fitness_scores.append(objective_function(*individual))
 
-    # Run the genetic algorithm
-    # mu: Number of individuals to select for the next generation.
-    # lambda_: Number of offspring to produce at each generation.
-    # cxpb: Probability of mating two individuals.
-    # mutpb: Probability of mutating an individual.
-    # ngen: Number of generations.
-    # stats, halloffame, and verbose parameters are optional.
-    algorithms.eaMuPlusLambda(population, toolbox, mu=50, lambda_=200, cxpb=0.7, mutpb=0.2, ngen=100, stats=None, halloffame=None, verbose=True)
+        # Add a small constant value to avoid zero weights
+        fitness_scores = np.array(fitness_scores) + 0.01
 
-    # Print the best individual
-    best_individual = tools.selBest(population, k=1)[0]
-    print("Best individual:", best_individual)
-    print("Best solution:", [round(x, 2) for x in best_individual])
+        # Check for NaN values in fitness scores
+        if np.isnan(fitness_scores).any():
+            # Handle NaN values by setting them to a finite value
+            fitness_scores = np.nan_to_num(fitness_scores, nan=1.0)
 
+        # Select parents for the next generation
+        selected_parents = random.choices(population, weights=1 / fitness_scores, k=population_size)
+
+        # Generate new generation
+        new_population = []
+        for _ in range(population_size):
+            parent1, parent2 = random.choice(selected_parents), random.choice(selected_parents)
+            child = crossover(parent1, parent2)
+            mutated_child = mutate(child)
+            new_population.append(mutated_child)
+
+        population = new_population
+
+    # Find the best individual in the final generation
+    best_individual = population[np.argmin([objective_function(*individual) for individual in population])]
+    return best_individual
+
+# Run the genetic algorithm and print the result
+best_solution = genetic_algorithm()
+a, b, c, d = best_solution
+print(f"The best solution found: a={a}, b={b}, c={c}, d={d}")
+print(f"Objective function value: {objective_function(a, b, c, d)}")
